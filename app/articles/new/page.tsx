@@ -1,95 +1,122 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 import { Category } from '@/types';
 
 export default function NewArticlePage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [isPublished, setIsPublished] = useState(true);
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
+
+  // Select
+  // Загружаем рубрики для выпадающего списка
   useEffect(() => {
-    fetch('/api/categories')
-      .then(res => res.json())
-      .then(setCategories);
+    async function loadCategories() {
+      try {
+        const data = await api.getCategories(1, 100);
+        setCategories(data.items.filter(c => !c.isArchived)); // Берем только неархивные
+      } catch (err: any) {
+        setError('Не удалось загрузить рубрики для списка');
+      } finally {
+        setLoadingCats(false);
+      }
+    }
+    loadCategories();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setSubmitting(true);
 
-    const res = await fetch('/api/articles', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, categoryId }),
-    });
-
-    if (res.ok) {
-      router.push('/articles');
-    } else {
-      const data = await res.json();
-      setError(data.error || 'Ошибка создания');
+    try {
+      await api.createArticle({ title, content, categoryId, isPublished, views: 0 });
+      router.push('/articles'); // Редирект после создания
+    } catch (err: any) {
+      setError(err.message || 'Ошибка создания статьи');
+    } finally {
+      setSubmitting(false);
     }
-    setLoading(false);
-  };
+  }
+
+  if (loadingCats) return <div className="text-center py-10 text-gray-500 text-sm">Инициализация формы...</div>;
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Создать статью</h1>
-      
-      {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+      <h1 className="text-xl font-bold text-gray-900 mb-6">Написание новой статьи</h1>
+
+      {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-xs">{error}</div>}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block mb-1">Заголовок *</label>
-          <input
-            type="text"
-            required
-            className="w-full border p-2 rounded"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-          />
-        </div>
-        
-        <div>
-          <label className="block mb-1">Рубрика *</label>
+          <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+            Привязать к рубрике <span className="text-red-500">*</span>
+          </label>
           <select
             required
-            className="w-full border p-2 rounded"
             value={categoryId}
-            onChange={e => setCategoryId(e.target.value)}
-          >
-            <option value="">Выберите рубрику</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <option value="">-- Выберите рубрику из списка --</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </div>
-        
+
         <div>
-          <label className="block mb-1">Содержание *</label>
-          <textarea
-            required
-            rows={10}
-            className="w-full border p-2 rounded font-mono"
-            value={content}
-            onChange={e => setContent(e.target.value)}
-          />
+          <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+            Заголовок статьи <span className="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" required value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            placeholder="Например: Понимание хуков в React"/>
         </div>
-        
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          {loading ? 'Сохранение...' : 'Создать статью'}
-        </button>
+
+        <div>
+          <label className="block text-xs font-bold uppercase text-gray-700 mb-2">
+            Содержание статьи <span className="text-red-500">*</span>
+          </label>
+          <textarea 
+            rows={8} required value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            placeholder="Напишите развернутый обучающий текст..."/>
+        </div>
+
+        <div className="flex items-center">
+          <input 
+            id="isPublished" type="checkbox" checked={isPublished}
+            onChange={(e) => setIsPublished(e.target.checked)}
+            className="h-4 w-4 text-indigo-600 border-gray-300 rounded" />
+          <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-700 select-none">
+            Опубликовать сразу (доступно для чтения)
+          </label>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
+          <button 
+            type="button" onClick={() => router.push('/articles')}
+            className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md">
+            Отмена
+          </button>
+          <button 
+            type="submit" disabled={submitting}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-md transition-colors">
+            {submitting ? 'Публикация...' : 'Сохранить статью'}
+          </button>
+        </div>
       </form>
     </div>
   );

@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Система ведения базы знаний (Статьи и Рубрики)
 
-## Getting Started
+Учебный проект по разработке полноценного клиент-серверного веб-приложения в рамках практической работы.
 
-First, run the development server:
+## Обоснование архитектуры
+В соответствии с техническим заданием выбран **Вариант Б (Fullstack Next.js)**. 
+- И фронтенд, и бэкенд логика находятся в рамках единого проекта на базе Next.js (App Router).
+- Серверный функционал реализован через изолированные Route Handlers в папке `app/api/`.
+- Выбор обусловлен простотой локального развертывания проекта (один репозиторий, запуск на одном общем порту `3000`), отсутствием необходимости настраивать CORS политики для межсервисного взаимодействия, что идеально подходит для создания быстрых MVP систем.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Технологический стек
+- **Framework:** Next.js 14+ (App Router)
+- **Language:** TypeScript 
+- **Styling:** Tailwind CSS (чистая утилитарная верстка, адаптивность от 320px)
+- **Хранилище данных:** In-Memory массивы (данные хранятся в оперативной памяти бэкенд-процесса в модуле `lib/store.ts`)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Инструкция по локальному запуску
+1. Установите зависимости проекта:
+   ```bash
+   npm install
+   ```
+2. Запустите сервер разработки:
+   ```bash
+   npm run dev
+   ```
+3. Откройте в браузере адрес: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Структура данных
+Реализованы две сущности со связью **Один-ко-многим** (В одной Рубрике может содержаться множество Статей):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Рубрика (`Category`)
+- `id`: string (UUID) — уникальный идентификатор.
+- `name`: string — обязательное текстовое поле.
+- `description`: string (опционально) — описание рубрики.
+- `articlesCount`: number — количество статей в рубрике.
+- `isArchived`: boolean — статус архивности.
+- `createdAt` / `updatedAt`: string — даты контроля записи.
 
-## Learn More
+### 2. Статья (`Article`)
+- `id`: string (UUID) — уникальный идентификатор.
+- `title`: string — обязательный заголовок.
+- `content`: string — обязательный текст.
+- `categoryId`: string — поле-ссылка на родительскую Рубрику.
+- `views`: number — количество просмотров.
+- `isPublished`: boolean — статус публикации.
+- `createdAt` / `updatedAt`: string — даты контроля записи.
 
-To learn more about Next.js, take a look at the following resources:
+## Описание эндпоинтов REST API
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Рубрики
+- `GET /api/categories?page=1&limit=10` — список рубрик с постраничной пагинацией.
+- `POST /api/categories` — создание рубрики. Проверяет уникальность названия и валидность типов (возвращает `422` при ошибках).
+- `GET /api/categories/:id` — получение одной рубрики с вложенным массивом ее статей.
+- `PATCH /api/categories/:id` — частичное обновление полей и перезапись даты `updatedAt`.
+- `DELETE /api/categories/:id` — удаление рубрики и каскадное очищение связанных статей.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Статьи
+- `GET /api/articles?page=1&limit=5&q=текст&categoryId=id` — список статей с встроенным текстовым поиском, фильтрацией по рубрике и пагинацией.
+- `POST /api/articles` — написание новой статьи с автоматическим инкрементом `articlesCount` у рубрики.
+- `GET /api/articles/:id` — детальное чтение статьи с вложенным объектом рубрики и счетчиком просмотров (`views++`).
+- `PATCH /api/articles/:id` — редактирование статьи.
+- `DELETE /api/articles/:id` — удаление статьи с декрементом счетчика у рубрики.

@@ -1,43 +1,59 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 export default function EditCategoryPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
   useEffect(() => {
+    if (!id) return;
+
     fetch(`/api/categories/${id}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Рубрика не найдена на сервере');
+        return res.json();
+      })
       .then(data => {
-        setName(data.name);
-        setDescription(data.description || '');
+        setName(data.name ?? '');
+        setDescription(data.description ?? '');
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
       });
   }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
+    setError('');
     
     const res = await fetch(`/api/categories/${id}`, {
-      method: 'PUT',
+      method: 'PATCH', 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, description }),
     });
     
     if (res.ok) {
-      router.push(`/categories/${id}`);
+      router.refresh(); 
+      router.push('/categories'); 
     } else {
       const data = await res.json();
       setError(data.error || 'Ошибка');
     }
-    setLoading(false);
+    setSubmitting(false);
   };
+
+  if (loading) return <div className="text-center p-6">Загрузка данных...</div>;
 
   return (
     <div className="max-w-md mx-auto">
@@ -50,20 +66,18 @@ export default function EditCategoryPage() {
             type="text"
             required
             className="w-full border p-2 rounded"
-            value={name}
-            onChange={e => setName(e.target.value)}
-          />
+            value={name ?? ''} 
+            onChange={e => setName(e.target.value)}/>
         </div>
         <div>
           <label className="block mb-1">Описание</label>
           <textarea
             className="w-full border p-2 rounded"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-          />
+            value={description ?? ''} 
+            onChange={e => setDescription(e.target.value)}/>
         </div>
-        <button type="submit" disabled={loading} className="bg-green-500 text-white px-4 py-2 rounded">
-          {loading ? 'Сохранение...' : 'Сохранить'}
+        <button type="submit" disabled={submitting} className="bg-green-500 text-white px-4 py-2 rounded">
+          {submitting ? 'Сохранение...' : 'Сохранить'}
         </button>
       </form>
     </div>
