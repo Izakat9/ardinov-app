@@ -105,8 +105,9 @@ export async function PATCH(
 // Удаление статьи с уменьшением счётчика статей в её рубрике
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  // Распаковываем параметры через await
   const { id } = await params;
   const index = articles.findIndex(a => a.id === id);
   
@@ -116,7 +117,7 @@ export async function DELETE(
   
   const categoryId = articles[index].categoryId;
   
-  // Удаляем статью из массива
+  // Удаляем статью из массива памяти бэкенда
   articles.splice(index, 1);
   
   // Находим рубрику этой статьи и уменьшаем счётчик её статей на 1
