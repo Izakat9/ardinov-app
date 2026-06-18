@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { categories, articles, db } from '@/lib/store';
-
 // GET 
 // получить одну рубрику со статьями
 export async function GET(
@@ -18,7 +17,6 @@ export async function GET(
   
   return NextResponse.json({ ...category, articles: categoryArticles });
 }
-
 // PUT  
 // обновить рубрику
 export async function PATCH(
@@ -31,9 +29,7 @@ export async function PATCH(
     const index = categories.findIndex(c => c.id === id);
     
     if (index === -1) {
-      return NextResponse.json({ error: 'Рубрика не найдена' }, { status: 404 }); 
-    }
-    
+      return NextResponse.json({ error: 'Рубрика не найдена' }, { status: 404 }); }
     // Валидация типов данных
     if (body.name !== undefined && (typeof body.name !== 'string' || body.name.trim() === '')) {
       return NextResponse.json({ error: 'Поле "name" должно быть непустой строкой' }, { status: 422 }); 
