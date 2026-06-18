@@ -6,15 +6,12 @@ import { Article, PaginatedResponse } from '@/types';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
     // Параметры поиска " ?q= " и фильтрации " ?categoryId= "
     const query = searchParams.get('q') || '';
     const categoryId = searchParams.get('categoryId') || '';
-    
     // Получить номер страницы и лимит из запроса
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.max(1, parseInt(searchParams.get('limit') || '10', 10));
-    
     let filtered: Article[] = [...articles];
     
     // 1 - Поиск по текстовым полям заголовок/контент
@@ -23,17 +20,12 @@ export async function GET(request: NextRequest) {
       filtered = filtered.filter(a => 
         a.title.toLowerCase().includes(lowerQuery) || 
         a.content.toLowerCase().includes(lowerQuery)
-      );
-    }
-    
+      );}
     // 2 - Фильтрация по рубрике
     if (categoryId) {
-      filtered = filtered.filter(a => a.categoryId === categoryId);
-    }
-
+      filtered = filtered.filter(a => a.categoryId === categoryId);}
     // Сортировка от new к old
     filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
     // 3 - Пагинация
     // считаем количество страниц и берем нужный отрывок
     const total = filtered.length;
