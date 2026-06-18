@@ -6,7 +6,6 @@ import { Category, PaginatedResponse } from '@/types';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
       // Получаем номер страницы и лимит из запроса
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.max(1, parseInt(searchParams.get('limit') || '10', 10));
@@ -18,7 +17,6 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
     const paginatedItems = categories.slice(offset, offset + limit);
 
-
     const response: PaginatedResponse<Category> = {
       items: paginatedItems,
       total,
@@ -26,30 +24,23 @@ export async function GET(request: NextRequest) {
       pages, };
 
     return NextResponse.json(response); } catch (error) {
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 }); }
-}
-
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 }); }}
 // Создание новой рубрики с полной валидацией
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
     // 1. Валидация на наличие обязательных полей и соответствие типов данных
     if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
-      return NextResponse.json({ error: 'Поле "name" обязательно и должно быть строкой' }, { status: 422 }); }
-    
+      return NextResponse.json({ error: 'Поле "name" обязательно и должно быть строкой' }, { status: 422 }); } 
     if (body.description !== undefined && typeof body.description !== 'string') {
       return NextResponse.json({ error: 'Поле "description" должно быть строкой' }, { status: 422 }); }
-
     if (body.isArchived !== undefined && typeof body.isArchived !== 'boolean') {
       return NextResponse.json({ error: 'Поле "isArchived" должно быть логического типа (true/false)' }, { status: 422 }); }
-
     // 2. Проверка уникальности поля по существующим данным в хранилище
     const isDuplicate = categories.some(
       (c) => c.name.toLowerCase().trim() === body.name.toLowerCase().trim());
     if (isDuplicate) {
       return NextResponse.json({ error: 'Рубрика с таким названием уже существует' }, { status: 422 }); }
-
     // 3. Формирование объекта (UUID, дефолтные значения типов, ручные даты)
     const timestamp = new Date().toISOString();
     const newCategory: Category = {
