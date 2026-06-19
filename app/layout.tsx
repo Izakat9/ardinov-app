@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
-
 export const metadata: Metadata = {
   title: 'База Знаний | статьи и рубрики',
   description: 'Клиент-серверное веб-приложение на Next.js',
 };
-
 export default function RootLayout({
   children,
 }: {
@@ -33,11 +31,9 @@ export default function RootLayout({
             </nav>
           </div>
         </header>
-
         <main className="flex-grow max-w-5xl w-full mx-auto px-4 py-8">
           {children}
         </main>
-
         <footer className="bg-white border-t border-gray-200 py-4 mt-auto">
           <div className="max-w-5xl mx-auto px-4 text-center text-xs text-gray-400">
           <p>Проект выполнен студентом ИСП группы 1.31 Ардинов А.Т.</p>
